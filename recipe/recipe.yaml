@@ -19,10 +19,8 @@ build:
       - if: unix
         then:
           - export CFLAGS="${CFLAGS} -D_BSD_SOURCE"
-        else:
-      - cargo auditable install --locked --no-track --bins --root ${{ PREFIX }} --path .
       - cargo-bundle-licenses --format yaml --output ./THIRDPARTY.yml
-
+      - cargo auditable install --locked --no-track --bins --root ${{ PREFIX }} --path .
 
 requirements:
   build:
@@ -30,6 +28,7 @@ requirements:
     - ${{ compiler('c') }}
     - ${{ compiler('cxx') }}
     - ${{ stdlib('c') }}
+    - cargo-auditable
     - cargo-bundle-licenses
     - if: unix
       then:
