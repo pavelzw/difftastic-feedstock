@@ -10,8 +10,19 @@ source:
   sha256: 4f89fdce7f58eb0521c14c14a7f76144dab5aa01400b332dd8710b550d32dc4c
 
 build:
-  number: 0
-  skip: win or ppc64le
+  number: 1
+  script:
+    env:
+      CARGO_PROFILE_RELEASE_STRIP: symbols
+      CARGO_PROFILE_RELEASE_LTO: fat
+    content:
+      - if: unix
+        then:
+          - export CFLAGS="${CFLAGS} -D_BSD_SOURCE"
+        else:
+      - cargo auditable install --locked --no-track --bins --root ${{ PREFIX }} --path .
+      - cargo-bundle-licenses --format yaml --output ./THIRDPARTY.yml
+
 
 requirements:
   build:
@@ -20,9 +31,15 @@ requirements:
     - ${{ compiler('cxx') }}
     - ${{ stdlib('c') }}
     - cargo-bundle-licenses
-    - make
+    - if: unix
+      then:
+        - make
 
 tests:
+  - package_contents:
+      bin:
+        - difft
+      strict: true
   - script:
       - difft --help
 
@@ -34,6 +51,7 @@ about:
   summary: Diff that understands syntax
   homepage: https://github.com/Wilfred/difftastic
   repository: https://github.com/Wilfred/difftastic
+  documentation: https://difftastic.wilfred.me.uk
 
 extra:
   recipe-maintainers:
