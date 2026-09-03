@@ -18,7 +18,22 @@ build:
     content:
       - if: unix
         then:
-          - export CFLAGS="${CFLAGS} -D_BSD_SOURCE"
+          # _DEFAULT_SOURCE is the modern spelling of _BSD_SOURCE; keep both so
+          # the glibc 2.17 sysroots stay happy without tripping the deprecation
+          # warning on newer ones (which -Werror probes turn into errors)
+          - export CFLAGS="${CFLAGS} -D_BSD_SOURCE -D_DEFAULT_SOURCE"
+      - if: target_platform == 'linux-ppc64le'
+        then:
+          # rust-lld cannot handle the inline-PLT relocations (R_PPC64_PLTSEQ,
+          # R_PPC64_PLTCALL) that gcc emits in the tree-sitter scanners
+          - export RUSTFLAGS="${RUSTFLAGS:-} -Clink-arg=-fuse-ld=bfd"
+      - if: win
+        then:
+          # the vendored_parsers symlinks do not survive tarball extraction on
+          # Windows, so recreate them as junctions/copies before building
+          - for /d %%D in (vendored_parsers\tree-sitter-*) do @if exist "%%D\src\parser.c" if not exist "%%D-src\parser.c" mklink /J "%%D-src" "%%D\src"
+          - for %%D in (hare kotlin smali) do copy /Y "vendored_parsers\tree-sitter-%%D\queries\highlights.scm" "vendored_parsers\highlights\%%D.scm"
+          - copy /Y "vendored_parsers\tree-sitter-janet-simple\queries\highlights.scm" "vendored_parsers\highlights\janet_simple.scm"
       - cargo-bundle-licenses --format yaml --output ./THIRDPARTY.yml
       - cargo auditable install --locked --no-track --bins --root ${{ PREFIX }} --path .
 
